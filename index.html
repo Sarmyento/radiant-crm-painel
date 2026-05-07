@@ -824,9 +824,9 @@ function renderDailySessions() {
   }
   el.innerHTML = sess.map((s,i) => `
     <div class="session-chip">
-      ${avatarEl(s.by,'xs')}
+      ${avatarEl(s.by||s.person,'xs')}
       <strong style="color:var(--emerald);font-family:monospace;">${minToHHMM(s.min)}</strong>
-      <span style="color:var(--text3)">${TEAM[s.by]?.name||s.by}</span>
+      <span style="color:var(--text3)">${TEAM[s.by||s.person]?.name||(s.by||s.person)}</span>
       <button onclick="delDaySess(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0 2px;" title="Remover">×</button>
     </div>
   `).join('');
@@ -1293,7 +1293,7 @@ function renderDayModalLogs() {
       <div class="log-entry" style="margin-bottom:8px;">
         <div class="log-date-col"><div class="log-date">${fmtDate(s.date)}</div><div class="log-time">${minToHHMM(s.min)}</div></div>
         <div class="log-body">
-          <div class="log-by">${avatarEl(s.by||'cristiano','xs')}<strong>${TEAM[s.by||'cristiano']?.name||s.by}</strong>${srcBadge}${taskInfo}</div>
+          <div class="log-by">${avatarEl(s.by||s.person||'cristiano','xs')}<strong>${TEAM[s.by||s.person||'cristiano']?.name||(s.by||s.person)}</strong>${srcBadge}${taskInfo}</div>
           <div class="log-notes">${s.notes||s.description||'—'}</div>
         </div>
       </div>`;
