@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radiant CRM — Painel de Desenvolvimento</title>
+<!-- Estado gerado automaticamente pelo Claude via scripts/session.mjs -->
+<script src="panel-data.js" onerror="console.info('panel-data.js não encontrado — usando localStorage')"></script>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d; --bg4: #2d333b;
+    --border: #30363d; --border2: #444c56;
+    --text: #e6edf3; --text2: #8b949e; --text3: #6e7681;
+    --primary: #6366f1; --primary-dim: #6366f120;
+    --emerald: #10b981; --emerald-dim: #10b98120;
+    --amber: #f59e0b; --amber-dim: #f59e0b20;
+    --red: #ef4444; --red-dim: #ef444420;
+    --blue: #3b82f6; --blue-dim: #3b82f620;
+    --purple: #8b5cf6; --purple-dim: #8b5cf620;
+    --cyan: #06b6d4; --cyan-dim: #06b6d420;
+    --radius: 10px; --radius-sm: 6px;
+    font-size: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+  /* ── Layout ── */
+  .shell { display: flex; flex-direction: column; height: 100vh; }
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; gap: 16px; height: 56px; position: sticky; top:0; z-index:100; }
+  .logo { font-weight:700; font-size:15px; color:var(--text); display:flex; align-items:center; gap:8px; }
+  .logo-badge { background: linear-gradient(135deg,var(--primary),var(--blue)); padding:3px 8px; border-radius:4px; font-size:11px; color:#fff; }
+  .topbar-sep { flex:1; }
+  .topbar-info { font-size:12px; color:var(--text2); }
+
+  .main { display:flex; flex:1; overflow:hidden; }
+  .sidebar { width:220px; background:var(--bg2); border-right:1px solid var(--border); padding:16px 12px; display:flex; flex-direction:column; gap:4px; overflow-y:auto; flex-shrink:0; }
+  .content { flex:1; overflow-y:auto; padding:24px; }
+
+  /* ── Sidebar nav ── */
+  .sidebar-section { font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.6px; padding:12px 8px 6px; }
+  .nav-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:var(--radius-sm); cursor:pointer; font-size:13px; color:var(--text2); transition:.15s; border:none; background:none; width:100%; text-align:left; }
+  .nav-item:hover { background:var(--bg3); color:var(--text); }
+  .nav-item.active { background:var(--primary-dim); color:var(--primary); font-weight:500; }
+  .nav-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .nav-count { margin-left:auto; font-size:11px; background:var(--bg4); padding:1px 6px; border-radius:10px; color:var(--text2); }
+
+  /* ── Stats bar ── */
+  .stats-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:24px; }
+  .stat-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:16px; }
+  .stat-label { font-size:11px; color:var(--text2); font-weight:500; margin-bottom:6px; }
+  .stat-value { font-size:22px; font-weight:700; }
+  .stat-sub { font-size:11px; color:var(--text3); margin-top:4px; }
+  .stat-bar { height:4px; background:var(--bg4); border-radius:2px; margin-top:10px; overflow:hidden; }
+  .stat-bar-fill { height:100%; border-radius:2px; transition:.3s; }
+
+  /* ── Daily tracker ── */
+  .daily-bar { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:16px 20px; margin-bottom:24px; display:flex; align-items:center; gap:24px; }
+  .daily-title { font-size:13px; font-weight:600; color:var(--text); flex-shrink:0; }
+  .daily-sessions { flex:1; display:flex; gap:8px; flex-wrap:wrap; }
+  .session-chip { background:var(--bg3); border:1px solid var(--border); border-radius:20px; padding:4px 12px; font-size:12px; color:var(--text2); display:flex; align-items:center; gap:6px; }
+  .session-chip .avatar-xs { width:16px; height:16px; font-size:8px; }
+  .btn-log-day { background:var(--primary); color:#fff; border:none; padding:8px 16px; border-radius:var(--radius-sm); font-size:13px; cursor:pointer; font-weight:500; white-space:nowrap; transition:.15s; }
+  .btn-log-day:hover { opacity:.85; }
+
+  /* ── Filters ── */
+  .filters { display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+  .filter-chip { background:var(--bg2); border:1px solid var(--border); border-radius:20px; padding:5px 14px; font-size:12px; color:var(--text2); cursor:pointer; transition:.15s; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+  .filter-chip:hover { border-color:var(--border2); color:var(--text); }
+  .filter-chip.active { border-color:var(--primary); color:var(--primary); background:var(--primary-dim); }
+  .filter-sep { width:1px; height:20px; background:var(--border); }
+  .search-wrap { position:relative; margin-left:auto; }
+  .search-input { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:6px 12px 6px 30px; font-size:13px; color:var(--text); width:200px; outline:none; }
+  .search-input:focus { border-color:var(--primary); }
+  .search-icon { position:absolute; left:9px; top:50%; transform:translateY(-50%); color:var(--text3); font-size:13px; }
+
+  /* ── Groups / Tasks ── */
+  .group-section { margin-bottom:28px; }
+  .group-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+  .group-badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; }
+  .group-title { font-size:14px; font-weight:600; color:var(--text); }
+  .group-stats { margin-left:auto; font-size:12px; color:var(--text3); }
+
+  .tasks-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:12px; }
+
+  .task-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:16px; cursor:pointer; transition:.15s; position:relative; }
+  .task-card:hover { border-color:var(--border2); transform:translateY(-1px); box-shadow:0 4px 16px #0005; }
+  .task-card.status-done { opacity:.6; }
+  .task-card.status-in_progress { border-left:3px solid var(--amber); }
+  .task-card.status-review { border-left:3px solid var(--cyan); }
+
+  .task-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:10px; }
+  .task-id { font-size:11px; font-weight:700; color:var(--text3); font-family:monospace; }
+  .task-priority { font-size:10px; font-weight:700; padding:2px 6px; border-radius:3px; }
+  .priority-critical { background:var(--red-dim); color:var(--red); }
+  .priority-high { background:#f97316/20; color:#f97316; background-color:rgba(249,115,22,.15); }
+  .priority-medium { background:var(--amber-dim); color:var(--amber); }
+  .priority-low { background:var(--bg4); color:var(--text3); }
+
+  .task-title { font-size:13px; font-weight:600; color:var(--text); margin-bottom:8px; line-height:1.4; }
+  .task-desc-preview { font-size:12px; color:var(--text2); margin-bottom:12px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+
+  .task-meta { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .avatars { display:flex; }
+  .avatar { width:24px; height:24px; border-radius:50%; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg2); margin-left:-6px; flex-shrink:0; }
+  .avatar:first-child { margin-left:0; }
+  .avatar-xs { width:20px; height:20px; border-radius:50%; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .validator-tag { font-size:11px; color:var(--text3); display:flex; align-items:center; gap:4px; }
+  .status-badge { font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; margin-left:auto; }
+  .status-pending { background:var(--bg4); color:var(--text3); }
+  .status-in_progress { background:var(--amber-dim); color:var(--amber); }
+  .status-review { background:var(--cyan-dim); color:var(--cyan); }
+  .status-done { background:var(--emerald-dim); color:var(--emerald); }
+
+  .task-times { display:flex; gap:12px; margin-bottom:10px; }
+  .time-block { flex:1; background:var(--bg3); border-radius:var(--radius-sm); padding:8px 10px; }
+  .time-label { font-size:10px; color:var(--text3); font-weight:500; margin-bottom:2px; }
+  .time-value { font-size:15px; font-weight:700; font-family:monospace; }
+  .time-est { color:var(--text2); }
+  .time-real { color:var(--emerald); }
+  .time-delta { color:var(--amber); }
+
+  .task-progress { background:var(--bg4); height:4px; border-radius:2px; overflow:hidden; margin-bottom:10px; }
+  .task-progress-fill { height:100%; border-radius:2px; transition:.4s; }
+
+  .task-footer { display:flex; align-items:center; justify-content:space-between; }
+  .task-logs-count { font-size:11px; color:var(--text3); }
+  .task-last-log { font-size:11px; color:var(--text3); }
+
+  /* ── Modal ── */
+  .modal-overlay { position:fixed; inset:0; background:#000a; z-index:200; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .modal { background:var(--bg2); border:1px solid var(--border); border-radius:14px; width:100%; max-width:680px; max-height:90vh; overflow-y:auto; }
+  .modal-header { padding:20px 24px 16px; border-bottom:1px solid var(--border); display:flex; align-items:flex-start; gap:12px; position:sticky; top:0; background:var(--bg2); z-index:1; }
+  .modal-header-info { flex:1; }
+  .modal-id { font-size:11px; font-weight:700; color:var(--text3); font-family:monospace; margin-bottom:4px; }
+  .modal-title { font-size:17px; font-weight:700; color:var(--text); margin-bottom:8px; }
+  .modal-close { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm); padding:6px 10px; cursor:pointer; font-size:16px; color:var(--text2); line-height:1; }
+  .modal-close:hover { color:var(--text); }
+
+  .modal-body { padding:20px 24px; }
+  .modal-section { margin-bottom:20px; }
+  .modal-section-title { font-size:12px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px; }
+
+  .team-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .team-label { font-size:12px; color:var(--text3); width:90px; flex-shrink:0; }
+  .team-member { display:flex; align-items:center; gap:8px; background:var(--bg3); border-radius:var(--radius-sm); padding:5px 10px; }
+  .team-name { font-size:13px; font-weight:500; }
+  .team-role { font-size:11px; color:var(--text3); }
+
+  .status-select { display:flex; gap:8px; flex-wrap:wrap; }
+  .status-btn { padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid var(--border); background:var(--bg3); color:var(--text2); transition:.15s; }
+  .status-btn:hover { border-color:var(--border2); color:var(--text); }
+  .status-btn.active-pending { border-color:var(--border2); color:var(--text3); background:var(--bg4); }
+  .status-btn.active-in_progress { border-color:var(--amber); color:var(--amber); background:var(--amber-dim); }
+  .status-btn.active-review { border-color:var(--cyan); color:var(--cyan); background:var(--cyan-dim); }
+  .status-btn.active-done { border-color:var(--emerald); color:var(--emerald); background:var(--emerald-dim); }
+
+  .log-form { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:16px; }
+  .log-form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+  .form-group { display:flex; flex-direction:column; gap:4px; }
+  .form-label { font-size:11px; color:var(--text3); font-weight:500; }
+  .form-input { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 10px; font-size:13px; color:var(--text); outline:none; }
+  .form-input:focus { border-color:var(--primary); }
+  .form-textarea { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 10px; font-size:13px; color:var(--text); outline:none; resize:vertical; min-height:70px; width:100%; }
+  .form-textarea:focus { border-color:var(--primary); }
+  .btn-save { background:var(--primary); color:#fff; border:none; padding:9px 20px; border-radius:var(--radius-sm); font-size:13px; font-weight:600; cursor:pointer; transition:.15s; }
+  .btn-save:hover { opacity:.85; }
+  .btn-delete { background:var(--red-dim); color:var(--red); border:1px solid var(--red); padding:6px 12px; border-radius:var(--radius-sm); font-size:12px; cursor:pointer; }
+
+  .logs-list { display:flex; flex-direction:column; gap:8px; }
+  .log-entry { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; display:flex; gap:12px; }
+  .log-date-col { flex-shrink:0; }
+  .log-date { font-size:11px; font-weight:600; color:var(--text2); font-family:monospace; }
+  .log-time { font-size:18px; font-weight:700; font-family:monospace; color:var(--emerald); }
+  .log-body { flex:1; }
+  .log-by { font-size:11px; color:var(--text3); margin-bottom:4px; display:flex; align-items:center; gap:6px; }
+  .log-notes { font-size:13px; color:var(--text); line-height:1.5; }
+  .log-del { background:none; border:none; color:var(--text3); cursor:pointer; font-size:14px; padding:2px 6px; border-radius:4px; }
+  .log-del:hover { color:var(--red); background:var(--red-dim); }
+
+  .empty-logs { text-align:center; padding:24px; color:var(--text3); font-size:13px; }
+
+  /* ── Day log modal ── */
+  .day-form-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:10px; }
+
+  /* ── Toast ── */
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:12px 18px; font-size:13px; color:var(--text); z-index:999; transform:translateY(80px); opacity:0; transition:.25s; max-width:300px; }
+  .toast.show { transform:translateY(0); opacity:1; }
+
+  /* ── Log / Sessions view ── */
+  .log-view-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  .log-view-title { font-size:16px; font-weight:700; color:var(--text); }
+  .log-view-sub { font-size:12px; color:var(--text3); margin-top:2px; }
+  .global-log-entry { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; display:flex; gap:14px; align-items:flex-start; cursor:pointer; transition:.15s; }
+  .global-log-entry:hover { border-color:var(--border2); }
+  .log-task-tag { font-size:11px; font-weight:700; font-family:monospace; padding:2px 7px; border-radius:4px; background:var(--primary-dim); color:var(--primary); white-space:nowrap; flex-shrink:0; }
+  .log-col-time { flex-shrink:0; min-width:70px; text-align:center; }
+  .log-col-time .log-time { font-size:16px; }
+  .log-col-meta { flex:1; }
+  .log-task-title { font-size:12px; font-weight:600; color:var(--text); margin-bottom:3px; }
+  .log-task-notes { font-size:12px; color:var(--text2); line-height:1.5; }
+  .log-timeline { display:flex; flex-direction:column; gap:8px; }
+  .log-date-divider { display:flex; align-items:center; gap:10px; margin:16px 0 8px; }
+  .log-date-divider span { font-size:11px; font-weight:700; color:var(--text3); white-space:nowrap; }
+  .log-date-divider::before, .log-date-divider::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  .session-view-entry { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:8px; display:flex; gap:16px; align-items:flex-start; }
+  .session-source-tag { font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; white-space:nowrap; }
+  .tag-claude { background:var(--purple-dim); color:var(--purple); }
+  .tag-manual { background:var(--blue-dim); color:var(--blue); }
+  .session-body { flex:1; }
+  .session-task-ref { font-size:12px; color:var(--primary); font-weight:600; margin-bottom:3px; }
+  .session-notes { font-size:13px; color:var(--text); line-height:1.5; }
+  .session-meta { font-size:11px; color:var(--text3); margin-top:6px; display:flex; gap:12px; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--bg4); border-radius:3px; }
+
+  .hidden { display:none !important; }
+  .tag { font-size:10px; padding:2px 6px; border-radius:3px; font-weight:600; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">
+    <span class="logo-badge">R</span>
+    Radiant CRM
+  </div>
+  <span style="font-size:12px;color:var(--text3);margin-left:4px;">— Painel de Desenvolvimento</span>
+  <div class="topbar-sep"></div>
+  <div class="topbar-info" id="topbar-date"></div>
+  <div style="width:1px;height:20px;background:var(--border);margin:0 8px;"></div>
+  <div class="topbar-info">Meta diária: <strong id="topbar-daily-goal" style="color:var(--primary)"></strong></div>
+  <div style="width:1px;height:20px;background:var(--border);margin:0 8px;"></div>
+  <div class="topbar-info">Hoje: <strong id="topbar-today-h" style="color:var(--emerald)"></strong></div>
+</div>
+
+<div class="main">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-section">Visão</div>
+  <button class="nav-item active" onclick="setView('all')" id="nav-all">
+    <div class="nav-dot" style="background:var(--primary)"></div>
+    Todas as Tarefas
+    <span class="nav-count" id="nc-all"></span>
+  </button>
+  <button class="nav-item" onclick="setView('pending')" id="nav-pending">
+    <div class="nav-dot" style="background:var(--text3)"></div>
+    Pendentes
+    <span class="nav-count" id="nc-pending"></span>
+  </button>
+  <button class="nav-item" onclick="setView('in_progress')" id="nav-in_progress">
+    <div class="nav-dot" style="background:var(--amber)"></div>
+    Em Andamento
+    <span class="nav-count" id="nc-in_progress"></span>
+  </button>
+  <button class="nav-item" onclick="setView('review')" id="nav-review">
+    <div class="nav-dot" style="background:var(--cyan)"></div>
+    Em Revisão
+    <span class="nav-count" id="nc-review"></span>
+  </button>
+  <button class="nav-item" onclick="setView('done')" id="nav-done">
+    <div class="nav-dot" style="background:var(--emerald)"></div>
+    Concluídas
+    <span class="nav-count" id="nc-done"></span>
+  </button>
+
+  <div class="sidebar-section">Responsável</div>
+  <button class="nav-item" onclick="filterPerson('all')" id="fp-all">
+    <div class="nav-dot" style="background:var(--text2)"></div>
+    Todos
+  </button>
+  <button class="nav-item" onclick="filterPerson('cristiano')" id="fp-cristiano">
+    <div class="nav-dot" style="background:#6366f1"></div>
+    Cristiano
+    <span style="font-size:10px;color:var(--text3);margin-left:2px;">Comercial</span>
+  </button>
+  <button class="nav-item" onclick="filterPerson('reuber')" id="fp-reuber">
+    <div class="nav-dot" style="background:#10b981"></div>
+    Reuber
+    <span style="font-size:10px;color:var(--text3);margin-left:2px;">TI</span>
+  </button>
+  <button class="nav-item" onclick="filterPerson('gustavo')" id="fp-gustavo">
+    <div class="nav-dot" style="background:#f59e0b"></div>
+    Gustavo
+    <span style="font-size:10px;color:var(--text3);margin-left:2px;">Proprietário</span>
+  </button>
+
+  <div class="sidebar-section">Histórico</div>
+  <button class="nav-item" onclick="setView('log')" id="nav-log">
+    <div class="nav-dot" style="background:var(--purple)"></div>
+    Log de Execuções
+    <span class="nav-count" id="nc-log"></span>
+  </button>
+  <button class="nav-item" onclick="setView('sessions')" id="nav-sessions">
+    <div class="nav-dot" style="background:var(--cyan)"></div>
+    Sessões Cristiano
+    <span class="nav-count" id="nc-sessions"></span>
+  </button>
+
+  <div class="sidebar-section">Config</div>
+  <button class="nav-item" onclick="openSettings()">
+    <div class="nav-dot" style="background:var(--text3)"></div>
+    Meta diária (h)
+  </button>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Progresso Geral</div>
+      <div class="stat-value" id="s-pct" style="color:var(--primary)">0%</div>
+      <div class="stat-sub" id="s-pct-sub"></div>
+      <div class="stat-bar"><div class="stat-bar-fill" id="s-pct-bar" style="background:var(--primary)"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Horas Estimadas</div>
+      <div class="stat-value" id="s-est" style="color:var(--text2)">—</div>
+      <div class="stat-sub" id="s-tasks-total"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Horas Executadas</div>
+      <div class="stat-value" id="s-real" style="color:var(--emerald)">—</div>
+      <div class="stat-sub" id="s-real-sub"></div>
+      <div class="stat-bar"><div class="stat-bar-fill" id="s-real-bar" style="background:var(--emerald)"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Saldo Restante</div>
+      <div class="stat-value" id="s-rem" style="color:var(--amber)">—</div>
+      <div class="stat-sub" id="s-rem-sub"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Horas Hoje</div>
+      <div class="stat-value" id="s-today" style="color:var(--cyan)">00:00</div>
+      <div class="stat-sub" id="s-today-sub"></div>
+      <div class="stat-bar"><div class="stat-bar-fill" id="s-today-bar" style="background:var(--cyan)"></div></div>
+    </div>
+  </div>
+
+  <!-- DAILY TRACKER -->
+  <div class="daily-bar">
+    <div class="daily-title">📅 Sessões de Hoje</div>
+    <div class="daily-sessions" id="daily-sessions">
+      <span style="font-size:12px;color:var(--text3);">Nenhuma sessão registrada</span>
+    </div>
+    <button class="btn-log-day" onclick="openDayLog()">+ Registrar sessão</button>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <button class="filter-chip active" data-group="all" onclick="filterGroup('all',this)">Todos grupos</button>
+    <button class="filter-chip" data-group="A" onclick="filterGroup('A',this)"><span style="color:#3b82f6">●</span> Completar</button>
+    <button class="filter-chip" data-group="B" onclick="filterGroup('B',this)"><span style="color:#8b5cf6">●</span> Parciais</button>
+    <button class="filter-chip" data-group="C" onclick="filterGroup('C',this)"><span style="color:#10b981">●</span> Novas</button>
+    <button class="filter-chip" data-group="D" onclick="filterGroup('D',this)"><span style="color:#f59e0b">●</span> Integrações</button>
+    <button class="filter-chip" data-group="E" onclick="filterGroup('E',this)"><span style="color:#ef4444">●</span> Qualidade</button>
+    <div class="filter-sep"></div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="search-input" placeholder="Buscar tarefa..." oninput="renderAll()">
+    </div>
+  </div>
+
+  <!-- TASK GROUPS -->
+  <div id="groups-container"></div>
+
+  <!-- LOG / SESSIONS VIEWS (alternativo ao groups-container) -->
+  <div id="alt-container" class="hidden"></div>
+</div>
+</div>
+</div>
+
+<!-- TASK MODAL -->
+<div class="modal-overlay hidden" id="task-modal" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-info">
+        <div class="modal-id" id="m-id"></div>
+        <div class="modal-title" id="m-title"></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <span class="status-badge" id="m-status-badge"></span>
+          <span class="task-priority" id="m-priority-badge"></span>
+          <span style="font-size:11px;color:var(--text3)" id="m-group-badge"></span>
+        </div>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('task-modal').classList.add('hidden')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Description -->
+      <div class="modal-section">
+        <div class="modal-section-title">Descrição</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.6;" id="m-desc"></div>
+      </div>
+
+      <!-- Team -->
+      <div class="modal-section">
+        <div class="modal-section-title">Equipe</div>
+        <div id="m-team"></div>
+      </div>
+
+      <!-- Times -->
+      <div class="modal-section">
+        <div class="modal-section-title">Horas</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;" id="m-times"></div>
+      </div>
+
+      <!-- Status -->
+      <div class="modal-section">
+        <div class="modal-section-title">Status</div>
+        <div class="status-select" id="m-status-btns"></div>
+      </div>
+
+      <!-- Log form -->
+      <div class="modal-section">
+        <div class="modal-section-title">Registrar Execução</div>
+        <div class="log-form">
+          <div class="log-form-row">
+            <div class="form-group">
+              <label class="form-label">Data</label>
+              <input class="form-input" type="date" id="log-date">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Horas executadas (hh:mm)</label>
+              <input class="form-input" type="text" id="log-hours" placeholder="02:30" maxlength="5">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:10px;">
+            <label class="form-label">Executado por</label>
+            <select class="form-input" id="log-by">
+              <option value="cristiano">Cristiano</option>
+              <option value="reuber">Reuber</option>
+              <option value="gustavo">Gustavo</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label">Resumo da execução</label>
+            <textarea class="form-textarea" id="log-notes" placeholder="Descreva o que foi feito nesta sessão..."></textarea>
+          </div>
+          <button class="btn-save" onclick="saveLog()">Salvar registro</button>
+        </div>
+      </div>
+
+      <!-- Logs list -->
+      <div class="modal-section">
+        <div class="modal-section-title">Histórico de Execução <span id="m-logs-count" style="font-weight:400;color:var(--text3);"></span></div>
+        <div class="logs-list" id="m-logs-list"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- DAY LOG MODAL -->
+<div class="modal-overlay hidden" id="day-modal" onclick="closeDayModal(event)">
+  <div class="modal" style="max-width:480px;" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-info">
+        <div class="modal-title">Registrar Sessão de Trabalho</div>
+        <div style="font-size:12px;color:var(--text3)">Sessão diária independente de tarefa específica</div>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('day-modal').classList.add('hidden')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="log-form">
+        <div class="day-form-row">
+          <div class="form-group">
+            <label class="form-label">Data</label>
+            <input class="form-input" type="date" id="day-date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Duração (hh:mm)</label>
+            <input class="form-input" type="text" id="day-hours" placeholder="06:00" maxlength="5">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Responsável</label>
+            <select class="form-input" id="day-by">
+              <option value="cristiano">Cristiano</option>
+              <option value="reuber">Reuber</option>
+              <option value="gustavo">Gustavo</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label">Tarefa em execução (opcional)</label>
+          <select class="form-input" id="day-task">
+            <option value="">— Sessão geral / sem tarefa específica —</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label">Resumo do dia</label>
+          <textarea class="form-textarea" id="day-notes" placeholder="O que foi trabalhado nessa sessão..."></textarea>
+        </div>
+        <button class="btn-save" onclick="saveDayLog()">Registrar</button>
+      </div>
+      <div style="margin-top:16px;" id="day-logs-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay hidden" id="settings-modal" onclick="event.target===this&&this.classList.add('hidden')">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header">
+      <div class="modal-title">Configurações</div>
+      <button class="modal-close" onclick="document.getElementById('settings-modal').classList.add('hidden')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:16px;">
+        <label class="form-label">Meta de horas diárias</label>
+        <input class="form-input" type="number" id="s-daily-goal-input" min="1" max="16" value="6">
+      </div>
+      <button class="btn-save" onclick="saveSettings()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// DATA INICIAL — atualizado a cada execução
+// ═══════════════════════════════════════════════
+const INITIAL_TASKS = [
+  // ─── GRUPO A — Completar Funcionalidades ───
+  {
+    id:'A1', group:'A', title:'Troca de Senha (Settings)',
+    desc:'Implementar handler de troca de senha na página Settings. Os três campos HTML (senha atual, nova senha, confirmar) já existem visualmente mas sem nenhuma lógica de chamada à API. Criar endpoint PATCH /api/crm/me/password no backend e conectar ao botão Salvar.',
+    responsible:['reuber'], validator:null, status:'pending', priority:'high',
+    estMin:240, logs:[]
+  },
+  {
+    id:'A2', group:'A', title:'Analytics — KPIs/KPOs e Dados Reais',
+    desc:'Duas frentes em paralelo: (1) CRISTIANO — definir quais dados, KPIs e KPOs devem ser monitorados: indicadores de pipeline, conversão, ciclo de venda, performance de SDR, saúde de contratos e customer success. Entregar mapeamento completo dos indicadores com fórmulas e fontes. (2) REUBER — substituir dados hardcoded ("Retenção" 88, "Satisfação" 85, heatmap) pela API real. Criar endpoints específicos conforme mapeamento do Cristiano. Dados de funil, receita e velocity já estão corretos.',
+    responsible:['cristiano','reuber'], validator:null, status:'pending', priority:'medium',
+    estMin:720, logs:[]
+  },
+  {
+    id:'A3', group:'A', title:'SalesOrder — Fase 6: Reserva de Equipamento',
+    desc:'Bloco "Reserva de equipamento" na página SalesOrderDetail está marcado como placeholder no código (comentário "Fase 6 entregue" mas ainda sem UI completa de reserva). Implementar UI de reserva/alocação de equipamento vinculada à OS.',
+    responsible:['reuber'], validator:'cristiano', status:'pending', priority:'high',
+    estMin:720, logs:[]
+  },
+  {
+    id:'A4', group:'A', title:'SalesOrder — Fase 7: Documentos',
+    desc:'Bloco de Documentos na tela de detalhe do Pedido de Venda (SalesOrderDetail) está como placeholder. Implementar upload, listagem e validação de documentos obrigatórios por tipo de pedido.',
+    responsible:['reuber'], validator:'cristiano', status:'pending', priority:'high',
+    estMin:480, logs:[]
+  },
+  {
+    id:'A5', group:'A', title:'Customer Success — Fluxo, Processos e Funcionalidades',
+    desc:'Três frentes integradas: (1) CRISTIANO — criar o fluxo completo de CS: jornada do cliente pós-venda, etapas de onboarding, check-ins periódicos, critérios de saúde, definição de alertas de churn e régua de comunicação. (2) CRISTIANO — definir quais funcionalidades do CRM serão utilizadas pelo colaborador de CS no dia a dia (visão de contratos, ativos, histórico de interações, tarefas). (3) REUBER — implantar as funcionalidades definidas, enriquecer a tela CustomerSuccess (score de saúde, NPS, histórico, alertas) e validar integrações com backend customer-health já existente.',
+    responsible:['cristiano','reuber'], validator:'cristiano', status:'pending', priority:'medium',
+    estMin:1200, logs:[]
+  },
+  {
+    id:'A6', group:'A', title:'Comissões — Plano, Mapeamento e Implantação',
+    desc:'Três frentes sequenciais: (1) CRISTIANO — elaborar e apresentar o plano de comissionamento: estrutura de percentuais por produto/perfil, regras de split, gatilhos de pagamento, período de apuração e casos especiais. Mapear todos os campos necessários no CRM para atender ao fluxo e ao cálculo das comissões. (2) GUSTAVO — validar o plano de comissionamento apresentado pelo Cristiano antes de qualquer implantação. (3) REUBER — após validação do Gustavo, implementar o módulo completo (visão por vendedor, período, breakdown, relatório exportável) e validar o fluxo de dados com os sistemas integrados, especialmente o ERP (OMIE).',
+    responsible:['cristiano','reuber'], validator:'gustavo', status:'pending', priority:'medium',
+    estMin:1440, logs:[]
+  },
+
+  // ─── GRUPO B — Módulos Parciais ───
+  {
+    id:'B1', group:'B', title:'Email Marketing — Editor HTML de campanhas',
+    desc:'Backend de email-campaigns está implementado (CRUD completo, status, segmentação). Falta: editor visual WYSIWYG para composição do corpo HTML da campanha, preview, sistema de templates de email e integração com envio real via Mailgun.',
+    responsible:['reuber'], validator:'cristiano', status:'pending', priority:'medium',
+    estMin:1440, logs:[]
+  },
+  {
+    id:'B2', group:'B', title:'SDR — Cadência, Playbook, Ferramentas e KPIs',
+    desc:'Duas frentes paralelas com colaboração contínua: (1) CRISTIANO — criar cadências de prospecção (touchpoints, intervalos, canais), elaborar o playbook do SDR (scripts, objeções, critérios de qualificação), definir o momento exato de passagem de bastão para o executivo de vendas, sugerir e avaliar ferramentas para otimizar resultados (automação de e-mail, discador, enriquecimento de dados) e definir os KPIs e KPOs de acompanhamento do SDR (taxa de conversão, reuniões agendadas, tempo de resposta, etc.). (2) REUBER — analisar as ferramentas sugeridas pelo Cristiano, implementar as cadências e automações de etapas no CRM, integrar as ferramentas aprovadas e garantir o painel de acompanhamento dos KPIs definidos.',
+    responsible:['cristiano','reuber'], validator:'cristiano', status:'pending', priority:'low',
+    estMin:1440, logs:[]
+  },
+  {
+    id:'B3', group:'B', title:'Automações — Editor visual de workflows',
+    desc:'CRUD de automações existe. O WorkflowEditor está incompleto — sem editor visual de nós/conexões. Implementar editor de fluxo com: triggers (evento), condições (if/else) e ações (enviar email, criar tarefa, mover deal, webhook).',
+    responsible:['reuber'], validator:'cristiano', status:'pending', priority:'low',
+    estMin:2400, logs:[]
+  },
+
+  // ─── GRUPO C — Funcionalidades Novas ───
+  {
+    id:'C1', group:'C', title:'Relatórios Exportáveis (PDF / Excel)',
+    desc:'Adicionar exportação em PDF e Excel nas telas de: Analytics, Comissões, Contratos e Propostas. Backend com Puppeteer já está instalado para PDF. Definir com Cristiano quais relatórios são prioritários e o formato de cada um.',
+    responsible:['reuber'], validator:'cristiano', status:'pending', priority:'medium',
+    estMin:1440, logs:[]
+  },
+  {
+    id:'C2', group:'C', title:'Notificações por E-mail Configuráveis',
+    desc:'Mailgun e Nodemailer estão configurados no backend. Falta: painel de configuração de triggers (ex: contrato assinado, deal ganho, aprovação pendente), templates de e-mail por evento e preferências por usuário (opt-in/out).',
+    responsible:['reuber'], validator:'cristiano', status:'pending', priority:'medium',
+    estMin:960, logs:[]
+  },
+
+  // ─── GRUPO D — Integrações TI ───
+  {
+    id:'D1', group:'D', title:'VoIP — Integração Real com Provider',
+    desc:'VoIPPanel existe com UI completa mas transcrição usa mockTranscription (dados simulados). Integrar com provider real (Twilio, Vonage ou similar): chamadas reais, gravação, transcrição automática via STT, e log de chamadas no timeline do contato.',
+    responsible:['reuber'], validator:null, status:'pending', priority:'low',
+    estMin:1920, logs:[]
+  },
+  {
+    id:'D2', group:'D', title:'Chat Interno — WebSocket Real',
+    desc:'ChatPanel existe com UI de conversas mas sem backend real de mensagens. Implementar: WebSocket server para mensagens em tempo real, storage de conversas no PostgreSQL, indicadores de leitura e presença online.',
+    responsible:['reuber'], validator:null, status:'pending', priority:'low',
+    estMin:1440, logs:[]
+  },
+  {
+    id:'D3', group:'D', title:'BTX Bridge + Worker NexusCore',
+    desc:'Dois workers estão desabilitados por variáveis de ambiente não configuradas: btx-worker (BTX_BRIDGE_INTERNAL_KEY) e outbox-worker (NEXUSCORE_INTERNAL_API_KEY). Configurar chaves, testar integração e validar fluxo de eventos com NexusCore.',
+    responsible:['reuber'], validator:null, status:'pending', priority:'high',
+    estMin:960, logs:[]
+  },
+
+  // ─── GRUPO E — Qualidade ───
+  {
+    id:'E1', group:'E', title:'Testes Automatizados — Cobertura Real',
+    desc:'Existe apenas 1 arquivo de teste de exemplo. Implementar suíte de testes: unitários para funções críticas (proration.ts, expression-engine.ts), integração para endpoints principais do backend e testes E2E para fluxos críticos (login, criar contrato, assinar).',
+    responsible:['reuber'], validator:null, status:'pending', priority:'medium',
+    estMin:1920, logs:[]
+  },
+  {
+    id:'E2', group:'E', title:'Responsivo Mobile',
+    desc:'Interface não está otimizada para dispositivos móveis. Auditar e corrigir: Sidebar colapsável em mobile, Cards responsivos no Dashboard, Tabelas com scroll horizontal, Modais adaptáveis, e telas de Kanban do Pipeline.',
+    responsible:['reuber'], validator:'cristiano', status:'pending', priority:'low',
+    estMin:1440, logs:[]
+  },
+];
+
+const GROUPS = {
+  A: { label:'Completar Funcionalidades', color:'#3b82f6' },
+  B: { label:'Módulos Parciais',          color:'#8b5cf6' },
+  C: { label:'Funcionalidades Novas',     color:'#10b981' },
+  D: { label:'Integrações (TI)',          color:'#f59e0b' },
+  E: { label:'Qualidade',                 color:'#ef4444' },
+};
+
+const TEAM = {
+  cristiano:{ name:'Cristiano', role:'Comercial', avatar:'C', color:'#6366f1' },
+  reuber:   { name:'Reuber',    role:'TI',        avatar:'R', color:'#10b981' },
+  gustavo:  { name:'Gustavo',   role:'Proprietário', avatar:'G', color:'#f59e0b' },
+};
+
+const PRIORITY_LABELS = { critical:'Crítico', high:'Alta', medium:'Média', low:'Baixa' };
+const STATUS_LABELS   = { pending:'Pendente', in_progress:'Em andamento', review:'Em revisão', done:'Concluída' };
+
+// ═══════════════════════════════════════════════
+// STATE — prioridade: panel-data.js > localStorage > INITIAL_TASKS
+// ═══════════════════════════════════════════════
+function loadState() {
+  // 1) panel-data.js gerado pelo Claude (scripts/session.mjs sync)
+  if (window.__PANEL_STATE) {
+    const ext = window.__PANEL_STATE;
+    // mescla novas tarefas que possam ter sido adicionadas ao INITIAL_TASKS
+    INITIAL_TASKS.forEach(it => {
+      if (!ext.tasks.find(t => t.id === it.id)) ext.tasks.push({ ...it, logs: [] });
+    });
+    return JSON.parse(JSON.stringify(ext)); // deep clone
+  }
+  // 2) localStorage (edições manuais pelo usuário no painel)
+  try {
+    const s = localStorage.getItem('radiant_dev_panel_v2');
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  return null;
+}
+function saveState(st) {
+  localStorage.setItem('radiant_dev_panel_v2', JSON.stringify(st));
+}
+
+let state = loadState();
+if (!state) {
+  state = {
+    tasks: INITIAL_TASKS.map(t => ({ ...t, logs: [...t.logs] })),
+    daySessions: [],
+    settings: { dailyGoalMin: 360 },
+    version: '1.0',
+  };
+  saveState(state);
+} else {
+  // garantir que tasks sem logs existam
+  INITIAL_TASKS.forEach(it => {
+    if (!state.tasks.find(t => t.id === it.id)) {
+      state.tasks.push({ ...it, logs: [] });
+    }
+  });
+}
+
+// indicador visual de fonte de dados
+const _src = window.__PANEL_STATE ? '🟢 panel-data.js' : '🟡 localStorage';
+document.addEventListener('DOMContentLoaded', () => {
+  const srcEl = document.createElement('div');
+  srcEl.style.cssText = 'position:fixed;bottom:12px;left:12px;font-size:10px;color:var(--text3);background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:3px 8px;z-index:500;font-family:monospace;';
+  srcEl.title = 'Fonte dos dados do painel';
+  srcEl.textContent = _src;
+  document.body.appendChild(srcEl);
+});
+
+// ═══════════════════════════════════════════════
+// VIEW STATE
+// ═══════════════════════════════════════════════
+let activeView = 'all';
+let activeGroup = 'all';
+let activePerson = 'all';
+let openTaskId = null;
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+function minToHHMM(min) {
+  if (!min && min !== 0) return '—';
+  const h = Math.floor(Math.abs(min) / 60);
+  const m = Math.abs(min) % 60;
+  const sign = min < 0 ? '-' : '';
+  return sign + String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+}
+function hhmmToMin(str) {
+  if (!str) return 0;
+  const parts = String(str).split(':');
+  return (parseInt(parts[0])||0)*60 + (parseInt(parts[1])||0);
+}
+function today() {
+  return new Date().toISOString().slice(0,10);
+}
+function fmtDate(d) {
+  if (!d) return '';
+  const [y,mo,da] = d.split('-');
+  return da+'/'+mo+'/'+y;
+}
+function taskActualMin(t) {
+  return (t.logs || []).reduce((s,l) => s + (l.min||0), 0);
+}
+function pctComplete(t) {
+  const est = t.estMin || 1;
+  const act = taskActualMin(t);
+  if (t.status === 'done') return 100;
+  return Math.min(99, Math.round((act/est)*100));
+}
+function getGroupColor(gid) { return GROUPS[gid]?.color || '#888'; }
+function toast(msg, dur=2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+function avatarEl(pid, size='normal') {
+  const p = TEAM[pid]; if (!p) return '';
+  const cls = size==='xs' ? 'avatar-xs' : 'avatar';
+  return `<div class="${cls}" style="background:${p.color}22;color:${p.color};border-color:var(--bg2)">${p.avatar}</div>`;
+}
+function persistAndRender() { saveState(state); renderAll(); }
+
+// ═══════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════
+function renderStats() {
+  const tasks = state.tasks;
+  const totalEst  = tasks.reduce((s,t) => s + (t.estMin||0), 0);
+  const totalReal = tasks.reduce((s,t) => s + taskActualMin(t), 0);
+  const done = tasks.filter(t => t.status==='done').length;
+  const pct  = tasks.length ? Math.round((done/tasks.length)*100) : 0;
+
+  const todayStr = today();
+  const todaySess = (state.daySessions||[]).filter(s => s.date===todayStr);
+  const todayMin  = todaySess.reduce((s,d) => s+d.min, 0);
+  const goalMin   = state.settings.dailyGoalMin || 360;
+  const todayPct  = Math.min(100, Math.round((todayMin/goalMin)*100));
+
+  document.getElementById('s-pct').textContent       = pct+'%';
+  document.getElementById('s-pct-sub').textContent   = done+' de '+tasks.length+' tarefas concluídas';
+  document.getElementById('s-pct-bar').style.width   = pct+'%';
+  document.getElementById('s-est').textContent       = minToHHMM(totalEst);
+  document.getElementById('s-tasks-total').textContent = tasks.length+' tarefas no total';
+  document.getElementById('s-real').textContent      = minToHHMM(totalReal);
+  document.getElementById('s-real-sub').textContent  = Math.round((totalReal/Math.max(1,totalEst))*100)+'% do estimado';
+  document.getElementById('s-real-bar').style.width  = Math.min(100,Math.round((totalReal/Math.max(1,totalEst))*100))+'%';
+  document.getElementById('s-rem').textContent       = minToHHMM(Math.max(0, totalEst-totalReal));
+  document.getElementById('s-rem-sub').textContent   = '~'+Math.ceil(Math.max(0,totalEst-totalReal)/goalMin)+' dias úteis restantes';
+  document.getElementById('s-today').textContent     = minToHHMM(todayMin);
+  document.getElementById('s-today-sub').textContent = 'Meta: '+minToHHMM(goalMin)+' | '+todayPct+'%';
+  document.getElementById('s-today-bar').style.width = todayPct+'%';
+
+  document.getElementById('topbar-date').textContent    = new Date().toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'});
+  document.getElementById('topbar-daily-goal').textContent = minToHHMM(goalMin)+'/dia';
+  document.getElementById('topbar-today-h').textContent = minToHHMM(todayMin);
+
+  // nav counts — status views
+  const cnt = { all:0, pending:0, in_progress:0, review:0, done:0 };
+  tasks.forEach(t => { cnt.all++; cnt[t.status]++; });
+  ['all','pending','in_progress','review','done'].forEach(k => {
+    const el = document.getElementById('nc-'+k);
+    if (el) el.textContent = cnt[k];
+  });
+
+  // nav counts — log & sessions views
+  const totalLogEntries = tasks.reduce((s,t) => s + (t.logs||[]).length, 0);
+  const totalSessions   = (state.daySessions||[]).length;
+  const ncLog  = document.getElementById('nc-log');
+  const ncSess = document.getElementById('nc-sessions');
+  if (ncLog)  ncLog.textContent  = totalLogEntries;
+  if (ncSess) ncSess.textContent = totalSessions;
+}
+
+// ═══════════════════════════════════════════════
+// DAILY SESSIONS
+// ═══════════════════════════════════════════════
+function renderDailySessions() {
+  const todayStr = today();
+  const sess = (state.daySessions||[]).filter(s => s.date===todayStr);
+  const el = document.getElementById('daily-sessions');
+  if (!sess.length) {
+    el.innerHTML = '<span style="font-size:12px;color:var(--text3);">Nenhuma sessão registrada hoje</span>';
+    return;
+  }
+  el.innerHTML = sess.map((s,i) => `
+    <div class="session-chip">
+      ${avatarEl(s.by,'xs')}
+      <strong style="color:var(--emerald);font-family:monospace;">${minToHHMM(s.min)}</strong>
+      <span style="color:var(--text3)">${TEAM[s.by]?.name||s.by}</span>
+      <button onclick="delDaySess(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:0 2px;" title="Remover">×</button>
+    </div>
+  `).join('');
+}
+function delDaySess(idx) {
+  const todayStr = today();
+  let gi = -1, cnt = 0;
+  for (let i=0; i<state.daySessions.length; i++) {
+    if (state.daySessions[i].date===todayStr) { if (cnt===idx){ gi=i; break; } cnt++; }
+  }
+  if (gi>=0) { state.daySessions.splice(gi,1); persistAndRender(); }
+}
+
+// ═══════════════════════════════════════════════
+// GROUPS & TASKS RENDER
+// ═══════════════════════════════════════════════
+function filteredTasks() {
+  const q = (document.getElementById('search-input')?.value||'').toLowerCase();
+  return state.tasks.filter(t => {
+    if (activeView!=='all' && t.status!==activeView) return false;
+    if (activeGroup!=='all' && t.group!==activeGroup) return false;
+    if (activePerson!=='all') {
+      const inResp = t.responsible.includes(activePerson);
+      const inVal  = t.validator===activePerson;
+      if (!inResp && !inVal) return false;
+    }
+    if (q && !t.title.toLowerCase().includes(q) && !t.desc.toLowerCase().includes(q) && !t.id.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function taskCardHTML(t) {
+  const act = taskActualMin(t);
+  const pct = pctComplete(t);
+  const barColor = t.status==='done' ? 'var(--emerald)' : pct>75 ? 'var(--amber)' : 'var(--primary)';
+  const delta = act - t.estMin;
+  const statusCls = `status-${t.status}`;
+  const logsN = (t.logs||[]).length;
+  const lastLog = logsN ? t.logs[t.logs.length-1] : null;
+
+  return `
+  <div class="task-card status-${t.status}" onclick="openTask('${t.id}')">
+    <div class="task-top">
+      <span class="task-id">${t.id}</span>
+      <span class="task-priority priority-${t.priority}">${PRIORITY_LABELS[t.priority]}</span>
+    </div>
+    <div class="task-title">${t.title}</div>
+    <div class="task-desc-preview">${t.desc}</div>
+    <div class="task-meta">
+      <div class="avatars">
+        ${t.responsible.map(p=>avatarEl(p)).join('')}
+      </div>
+      ${t.validator ? `<div class="validator-tag">${avatarEl(t.validator,'xs')}<span>valida</span></div>` : ''}
+      <span class="status-badge ${statusCls}">${STATUS_LABELS[t.status]||t.status}</span>
+    </div>
+    <div class="task-times">
+      <div class="time-block"><div class="time-label">Estimado</div><div class="time-value time-est">${minToHHMM(t.estMin)}</div></div>
+      <div class="time-block"><div class="time-label">Executado</div><div class="time-value time-real">${minToHHMM(act)}</div></div>
+      <div class="time-block"><div class="time-label">Saldo</div><div class="time-value time-delta" style="color:${delta>0?'var(--red)':delta<0?'var(--emerald)':'var(--text3)'}">${delta===0?'—':(delta>0?'+':'')+minToHHMM(delta)}</div></div>
+    </div>
+    <div class="task-progress"><div class="task-progress-fill" style="width:${pct}%;background:${barColor}"></div></div>
+    <div class="task-footer">
+      <span class="task-logs-count">📋 ${logsN} registro${logsN!==1?'s':''}</span>
+      ${lastLog ? `<span class="task-last-log">Último: ${fmtDate(lastLog.date)}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderGroups() {
+  const tasks = filteredTasks();
+  const groups = Object.keys(GROUPS).filter(g => activeGroup==='all' || g===activeGroup);
+  let html = '';
+  groups.forEach(gid => {
+    const gTasks = tasks.filter(t => t.group===gid);
+    if (!gTasks.length && activeGroup!=='all') return;
+    if (!gTasks.length) return;
+    const g = GROUPS[gid];
+    const doneN = gTasks.filter(t=>t.status==='done').length;
+    const estH = gTasks.reduce((s,t)=>s+t.estMin,0);
+    const actH = gTasks.reduce((s,t)=>s+taskActualMin(t),0);
+    html += `
+    <div class="group-section">
+      <div class="group-header">
+        <span class="group-badge" style="background:${g.color}22;color:${g.color}">Grupo ${gid}</span>
+        <span class="group-title">${g.label}</span>
+        <span class="group-stats">${doneN}/${gTasks.length} concluídas · Est ${minToHHMM(estH)} · Real ${minToHHMM(actH)}</span>
+      </div>
+      <div class="tasks-grid">${gTasks.map(t=>taskCardHTML(t)).join('')}</div>
+    </div>`;
+  });
+  if (!html) html = `<div style="text-align:center;padding:60px;color:var(--text3);">Nenhuma tarefa encontrada com os filtros selecionados.</div>`;
+  document.getElementById('groups-container').innerHTML = html;
+}
+
+function renderAll() {
+  renderStats();
+  renderDailySessions();
+  if (activeView === 'log')      { renderLogView(); }
+  else if (activeView === 'sessions') { renderSessionsView(); }
+  else { renderGroups(); }
+}
+
+// ═══════════════════════════════════════════════
+// LOG DE EXECUÇÕES VIEW
+// ═══════════════════════════════════════════════
+function renderLogView() {
+  const container = document.getElementById('alt-container');
+
+  // Coleta todos os logs com referência à tarefa
+  const allLogs = [];
+  state.tasks.forEach(t => {
+    (t.logs||[]).forEach((l,i) => {
+      allLogs.push({ ...l, taskId:t.id, taskTitle:t.title, taskGroup:t.group, logIdx:i });
+    });
+  });
+
+  if (!allLogs.length) {
+    container.innerHTML = `
+      <div class="log-view-header">
+        <div><div class="log-view-title">📋 Log de Execuções</div><div class="log-view-sub">Histórico global de todas as execuções registradas nas tarefas</div></div>
+      </div>
+      <div style="text-align:center;padding:60px;color:var(--text3);">Nenhum registro de execução ainda. Abra uma tarefa e registre a primeira execução.</div>`;
+    return;
+  }
+
+  // Agrupa por data (ordem decrescente)
+  allLogs.sort((a,b) => {
+    const dc = b.date.localeCompare(a.date);
+    return dc;
+  });
+  const byDate = {};
+  allLogs.forEach(l => {
+    if (!byDate[l.date]) byDate[l.date] = [];
+    byDate[l.date].push(l);
+  });
+
+  const totalMin = allLogs.reduce((s,l) => s+(l.min||0), 0);
+
+  let html = `
+    <div class="log-view-header">
+      <div>
+        <div class="log-view-title">📋 Log de Execuções</div>
+        <div class="log-view-sub">${allLogs.length} registro${allLogs.length!==1?'s':''} · Total: <strong style="color:var(--emerald)">${minToHHMM(totalMin)}</strong></div>
+      </div>
+    </div>
+    <div class="log-timeline">`;
+
+  Object.keys(byDate).sort((a,b)=>b.localeCompare(a)).forEach(date => {
+    const dayLogs = byDate[date];
+    const dayMin  = dayLogs.reduce((s,l)=>s+(l.min||0),0);
+    html += `
+      <div class="log-date-divider">
+        <span>${fmtDate(date)} &nbsp;·&nbsp; ${minToHHMM(dayMin)}</span>
+      </div>`;
+    dayLogs.forEach(l => {
+      const p = TEAM[l.by];
+      const gc = getGroupColor(l.taskGroup);
+      html += `
+      <div class="global-log-entry" onclick="openTask('${l.taskId}')">
+        <span class="log-task-tag" style="background:${gc}22;color:${gc}">${l.taskId}</span>
+        <div class="log-col-time">
+          <div class="log-time" style="font-size:15px;font-weight:700;font-family:monospace;color:var(--emerald)">${minToHHMM(l.min)}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px;">${p?.name||l.by}</div>
+        </div>
+        <div class="log-col-meta">
+          <div class="log-task-title">${l.taskTitle}</div>
+          <div class="log-task-notes">${l.notes||'<span style="color:var(--text3)">Sem descrição</span>'}</div>
+        </div>
+        <div style="flex-shrink:0;">${avatarEl(l.by,'xs')}</div>
+      </div>`;
+    });
+  });
+
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+// SESSÕES CRISTIANO VIEW
+// ═══════════════════════════════════════════════
+function renderSessionsView() {
+  const container = document.getElementById('alt-container');
+  const sessions  = (state.daySessions||[]).slice().reverse();
+
+  if (!sessions.length) {
+    container.innerHTML = `
+      <div class="log-view-header">
+        <div><div class="log-view-title">🕐 Sessões Cristiano</div><div class="log-view-sub">Histórico de sessões de trabalho diárias</div></div>
+      </div>
+      <div style="text-align:center;padding:60px;color:var(--text3);">Nenhuma sessão registrada ainda.</div>`;
+    return;
+  }
+
+  const totalMin = sessions.reduce((s,s2)=>s+(s2.min||0),0);
+  const totalDays = new Set(sessions.map(s=>s.date)).size;
+
+  // Agrupa por data
+  const byDate = {};
+  sessions.forEach(s => {
+    if (!byDate[s.date]) byDate[s.date] = [];
+    byDate[s.date].push(s);
+  });
+
+  let html = `
+    <div class="log-view-header">
+      <div>
+        <div class="log-view-title">🕐 Sessões Cristiano</div>
+        <div class="log-view-sub">${sessions.length} sessão${sessions.length!==1?'ões':''} em ${totalDays} dia${totalDays!==1?'s':''} · Total: <strong style="color:var(--cyan)">${minToHHMM(totalMin)}</strong></div>
+      </div>
+    </div>`;
+
+  Object.keys(byDate).sort((a,b)=>b.localeCompare(a)).forEach(date => {
+    const daySess = byDate[date];
+    const dayMin  = daySess.reduce((s,se)=>s+(se.min||0),0);
+    html += `
+    <div class="log-date-divider">
+      <span>${fmtDate(date)} &nbsp;·&nbsp; ${minToHHMM(dayMin)}</span>
+    </div>`;
+
+    daySess.forEach(s => {
+      // Determina se é sessão do Claude (tem id numérico longo) ou manual
+      const isClaude = s.person === 'cristiano' && s.id && String(s.id).length >= 10;
+      const sourceTag = isClaude
+        ? `<span class="session-source-tag tag-claude">🤖 Claude</span>`
+        : `<span class="session-source-tag tag-manual">✍️ Manual</span>`;
+
+      // Referência de tarefa se houver
+      const taskRef = s.taskRef
+        ? (() => { const t = state.tasks.find(x=>x.id===s.taskRef); return t ? `<div class="session-task-ref">📌 ${t.id} — ${t.title}</div>` : ''; })()
+        : '';
+
+      // Horários se disponíveis (sessões Claude têm startTime/endTime)
+      let timeMeta = `<span>${minToHHMM(s.min)} trabalhados</span>`;
+      if (s.startTime) {
+        const fmt = iso => new Date(iso).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'});
+        timeMeta = `<span>${fmt(s.startTime)} → ${s.endTime ? fmt(s.endTime) : '...'}</span><span>${minToHHMM(s.min)}</span>`;
+      }
+
+      html += `
+      <div class="session-view-entry">
+        <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:56px;">
+          ${sourceTag}
+          <div style="font-size:16px;font-weight:700;font-family:monospace;color:var(--cyan)">${minToHHMM(s.min)}</div>
+        </div>
+        <div class="session-body">
+          ${taskRef}
+          <div class="session-notes">${s.notes || s.description || '<span style="color:var(--text3)">Sem descrição</span>'}</div>
+          <div class="session-meta">${timeMeta}</div>
+        </div>
+      </div>`;
+    });
+  });
+
+  container.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+// FILTERS
+// ═══════════════════════════════════════════════
+function setView(v) {
+  activeView = v;
+  document.querySelectorAll('[id^=nav-]').forEach(el => el.classList.remove('active'));
+  const nav = document.getElementById('nav-'+v);
+  if (nav) nav.classList.add('active');
+
+  const isSpecial = v === 'log' || v === 'sessions';
+  document.getElementById('groups-container').classList.toggle('hidden', isSpecial);
+  document.querySelector('.filters').classList.toggle('hidden', isSpecial);
+  document.getElementById('alt-container').classList.toggle('hidden', !isSpecial);
+
+  if (v === 'log')      { renderLogView(); renderStats(); }
+  else if (v === 'sessions') { renderSessionsView(); renderStats(); }
+  else renderAll();
+}
+function filterGroup(g, el) {
+  activeGroup = g;
+  document.querySelectorAll('.filter-chip[data-group]').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderAll();
+}
+function filterPerson(p) {
+  activePerson = p;
+  document.querySelectorAll('[id^=fp-]').forEach(el => el.classList.remove('active'));
+  const fp = document.getElementById('fp-'+p);
+  if (fp) fp.classList.add('active');
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════
+// TASK MODAL
+// ═══════════════════════════════════════════════
+function openTask(id) {
+  openTaskId = id;
+  const t = state.tasks.find(x=>x.id===id);
+  if (!t) return;
+  const act = taskActualMin(t);
+
+  document.getElementById('m-id').textContent = t.id + ' — ' + GROUPS[t.group]?.label;
+  document.getElementById('m-title').textContent = t.title;
+  document.getElementById('m-desc').textContent = t.desc;
+
+  const sb = document.getElementById('m-status-badge');
+  sb.className = `status-badge status-${t.status}`;
+  sb.textContent = STATUS_LABELS[t.status];
+
+  const pb = document.getElementById('m-priority-badge');
+  pb.className = `task-priority priority-${t.priority}`;
+  pb.textContent = PRIORITY_LABELS[t.priority];
+
+  const gb = document.getElementById('m-group-badge');
+  const g = GROUPS[t.group];
+  gb.innerHTML = `<span style="color:${g?.color}">${g?.label||t.group}</span>`;
+
+  // Team
+  let teamHTML = '';
+  teamHTML += `<div class="team-row"><span class="team-label">Responsável</span>`;
+  t.responsible.forEach(pid => {
+    const p = TEAM[pid];
+    teamHTML += `<div class="team-member">${avatarEl(pid)}<div><div class="team-name">${p.name}</div><div class="team-role">${p.role}</div></div></div>`;
+  });
+  teamHTML += '</div>';
+  if (t.validator) {
+    const p = TEAM[t.validator];
+    teamHTML += `<div class="team-row"><span class="team-label">Validador</span><div class="team-member">${avatarEl(t.validator)}<div><div class="team-name">${p.name}</div><div class="team-role">${p.role} — valida a entrega</div></div></div></div>`;
+  }
+  document.getElementById('m-team').innerHTML = teamHTML;
+
+  // Times
+  const delta = act - t.estMin;
+  document.getElementById('m-times').innerHTML = `
+    <div class="time-block"><div class="time-label">⏱ Estimado</div><div class="time-value time-est">${minToHHMM(t.estMin)}</div></div>
+    <div class="time-block"><div class="time-label">✅ Executado</div><div class="time-value time-real">${minToHHMM(act)}</div></div>
+    <div class="time-block"><div class="time-label">📊 Saldo</div><div class="time-value" style="color:${delta>0?'var(--red)':delta<0?'var(--emerald)':'var(--text3)'}">${delta===0?'—':(delta>0?'+':'')+minToHHMM(delta)}</div></div>
+  `;
+
+  // Status buttons
+  const statuses = ['pending','in_progress','review','done'];
+  document.getElementById('m-status-btns').innerHTML = statuses.map(s =>
+    `<button class="status-btn ${t.status===s?'active-'+s:''}" onclick="setTaskStatus('${s}')">${STATUS_LABELS[s]}</button>`
+  ).join('');
+
+  // Log form defaults
+  document.getElementById('log-date').value = today();
+  document.getElementById('log-hours').value = '';
+  document.getElementById('log-notes').value = '';
+  document.getElementById('log-by').value = t.responsible[0] || 'reuber';
+
+  // Logs list
+  renderModalLogs(t);
+
+  document.getElementById('task-modal').classList.remove('hidden');
+}
+
+function renderModalLogs(t) {
+  const logs = (t.logs || []).slice().reverse();
+  document.getElementById('m-logs-count').textContent = `(${logs.length})`;
+  if (!logs.length) {
+    document.getElementById('m-logs-list').innerHTML = `<div class="empty-logs">Nenhum registro de execução ainda</div>`;
+    return;
+  }
+  document.getElementById('m-logs-list').innerHTML = logs.map((l,ri) => {
+    const i = t.logs.length-1-ri;
+    const p = TEAM[l.by];
+    return `
+    <div class="log-entry">
+      <div class="log-date-col">
+        <div class="log-date">${fmtDate(l.date)}</div>
+        <div class="log-time">${minToHHMM(l.min)}</div>
+      </div>
+      <div class="log-body">
+        <div class="log-by">${avatarEl(l.by,'xs')}<strong>${p?.name||l.by}</strong> <span style="color:var(--text3)">${p?.role||''}</span></div>
+        <div class="log-notes">${l.notes||'—'}</div>
+      </div>
+      <button class="log-del" onclick="deleteLog('${t.id}',${i})" title="Remover">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function setTaskStatus(s) {
+  const t = state.tasks.find(x=>x.id===openTaskId);
+  if (!t) return;
+  t.status = s;
+  persistAndRender();
+  openTask(openTaskId);
+  toast('Status atualizado: '+STATUS_LABELS[s]);
+}
+
+function saveLog() {
+  const t = state.tasks.find(x=>x.id===openTaskId);
+  if (!t) return;
+  const dateVal  = document.getElementById('log-date').value;
+  const hoursVal = document.getElementById('log-hours').value;
+  const byVal    = document.getElementById('log-by').value;
+  const notesVal = document.getElementById('log-notes').value.trim();
+  const min = hhmmToMin(hoursVal);
+  if (!dateVal) { toast('Informe a data'); return; }
+  if (!hoursVal || min<=0) { toast('Informe as horas no formato hh:mm'); return; }
+  t.logs.push({ date:dateVal, min, by:byVal, notes:notesVal });
+  // auto-set in_progress if pending
+  if (t.status==='pending') t.status='in_progress';
+  persistAndRender();
+  renderModalLogs(t);
+  openTask(openTaskId);
+  document.getElementById('log-hours').value='';
+  document.getElementById('log-notes').value='';
+  toast('✅ Execução registrada — '+minToHHMM(min));
+}
+
+function deleteLog(taskId, idx) {
+  if (!confirm('Remover este registro?')) return;
+  const t = state.tasks.find(x=>x.id===taskId);
+  if (!t) return;
+  t.logs.splice(idx,1);
+  persistAndRender();
+  renderModalLogs(t);
+  openTask(taskId);
+  toast('Registro removido');
+}
+
+function closeModal(e) {
+  if (e.target.id==='task-modal') {
+    document.getElementById('task-modal').classList.add('hidden');
+    openTaskId=null;
+  }
+}
+
+// ═══════════════════════════════════════════════
+// DAY LOG MODAL
+// ═══════════════════════════════════════════════
+function openDayLog() {
+  document.getElementById('day-date').value = today();
+  document.getElementById('day-hours').value = '';
+  document.getElementById('day-notes').value = '';
+
+  // Popular seletor de tarefas
+  const sel = document.getElementById('day-task');
+  const active = state.tasks.filter(t => t.status !== 'done');
+  const done   = state.tasks.filter(t => t.status === 'done');
+  sel.innerHTML =
+    `<option value="">— Sessão geral / sem tarefa específica —</option>` +
+    (active.length ? `<optgroup label="Em andamento / Pendentes">` +
+      active.map(t=>`<option value="${t.id}">[${t.id}] ${t.title}</option>`).join('') +
+      `</optgroup>` : '') +
+    (done.length ? `<optgroup label="Concluídas">` +
+      done.map(t=>`<option value="${t.id}">[${t.id}] ${t.title}</option>`).join('') +
+      `</optgroup>` : '');
+
+  renderDayModalLogs();
+  document.getElementById('day-modal').classList.remove('hidden');
+}
+function renderDayModalLogs() {
+  const todayStr = today();
+  const sess = (state.daySessions||[]).filter(s=>s.date===todayStr);
+  const el = document.getElementById('day-logs-list');
+  if (!sess.length) { el.innerHTML=''; return; }
+  el.innerHTML = `<div class="modal-section-title" style="margin-bottom:8px;">Sessões de hoje</div>` +
+    sess.map((s,i) => {
+      const taskInfo = s.taskRef
+        ? (() => { const t = state.tasks.find(x=>x.id===s.taskRef); return t ? `<span style="font-size:11px;color:var(--primary);font-weight:600;">📌 ${t.id}</span>` : ''; })()
+        : '';
+      const isClaude = s.person==='cristiano' && s.id && String(s.id).length>=10;
+      const srcBadge = isClaude ? `<span class="session-source-tag tag-claude" style="font-size:9px;">🤖 Claude</span>` : '';
+      return `
+      <div class="log-entry" style="margin-bottom:8px;">
+        <div class="log-date-col"><div class="log-date">${fmtDate(s.date)}</div><div class="log-time">${minToHHMM(s.min)}</div></div>
+        <div class="log-body">
+          <div class="log-by">${avatarEl(s.by||'cristiano','xs')}<strong>${TEAM[s.by||'cristiano']?.name||s.by}</strong>${srcBadge}${taskInfo}</div>
+          <div class="log-notes">${s.notes||s.description||'—'}</div>
+        </div>
+      </div>`;
+    }).join('');
+}
+function saveDayLog() {
+  const dateVal  = document.getElementById('day-date').value;
+  const hoursVal = document.getElementById('day-hours').value;
+  const byVal    = document.getElementById('day-by').value;
+  const notesVal = document.getElementById('day-notes').value.trim();
+  const taskRef  = document.getElementById('day-task').value || null;
+  const min = hhmmToMin(hoursVal);
+  if (!dateVal||min<=0) { toast('Informe data e horas válidas'); return; }
+  if (!state.daySessions) state.daySessions=[];
+  const entry = { date:dateVal, min, by:byVal, notes:notesVal };
+  if (taskRef) entry.taskRef = taskRef;
+  state.daySessions.push(entry);
+  persistAndRender();
+  renderDayModalLogs();
+  document.getElementById('day-hours').value='';
+  document.getElementById('day-notes').value='';
+  document.getElementById('day-task').value='';
+  toast('✅ Sessão registrada — '+minToHHMM(min));
+}
+function closeDayModal(e) {
+  if (e.target.id==='day-modal') document.getElementById('day-modal').classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════
+function openSettings() {
+  document.getElementById('s-daily-goal-input').value = Math.round((state.settings.dailyGoalMin||360)/60);
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+function saveSettings() {
+  const h = parseInt(document.getElementById('s-daily-goal-input').value)||6;
+  state.settings.dailyGoalMin = h*60;
+  persistAndRender();
+  document.getElementById('settings-modal').classList.add('hidden');
+  toast('Meta diária: '+minToHHMM(h*60));
+}
+
+// ═══════════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') {
+    document.getElementById('task-modal').classList.add('hidden');
+    document.getElementById('day-modal').classList.add('hidden');
+    document.getElementById('settings-modal').classList.add('hidden');
+  }
+});
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+renderAll();
+</script>
+</body>
+</html>
